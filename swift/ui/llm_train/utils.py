@@ -3,6 +3,7 @@ import asyncio
 import os
 import subprocess
 import sys
+import requests
 from asyncio.subprocess import PIPE, STDOUT
 from copy import deepcopy
 
@@ -41,6 +42,31 @@ def close_loop(handler):
 
 
 def run_command_in_background_with_popen(command, all_envs, log_file):
+    # Check for remote worker configuration
+    remote_worker = os.environ.get('SWIFT_REMOTE_WORKER')
+    if remote_worker:
+        try:
+            # Ensure the URL has a scheme
+            if not remote_worker.startswith('http'):
+                remote_worker = f'http://{remote_worker}'
+            
+            response = requests.post(
+                f"{remote_worker}/launch",
+                json={
+                    "command": command,
+                    "env": all_envs,
+                    "log_file": log_file,
+                    "work_dir": os.getcwd()
+                },
+                timeout=10
+            )
+            response.raise_for_status()
+            print(f"Remote training launched successfully on {remote_worker}")
+            return
+        except Exception as e:
+            print(f"Failed to launch remote training: {e}")
+            raise e
+
     env = deepcopy(os.environ)
     if len(all_envs) > 0:
         for k, v in all_envs.items():

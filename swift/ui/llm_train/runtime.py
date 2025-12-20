@@ -6,6 +6,7 @@ import subprocess
 import sys
 import time
 import webbrowser
+import requests
 from datetime import datetime
 from functools import partial
 from typing import Dict, List, Tuple, Type
@@ -405,9 +406,77 @@ class Runtime(BaseUI):
         return None
 
     @classmethod
+    def wait_remote(cls, logging_dir, task, remote_worker):
+        log_file = os.path.join(logging_dir, 'run.log')
+        cls.log_event[logging_dir] = False
+        offset = 0
+        latest_data = ''
+        lines = collections.deque(maxlen=int(os.environ.get('MAX_LOG_LINES', 100)))
+        
+        fail_cnt = 0
+        while True:
+            content = ''
+            try:
+                resp = requests.get(f"{remote_worker}/log", params={"log_file": log_file, "offset": offset}, timeout=2)
+                if resp.status_code == 200:
+                    data = resp.json()
+                    content = data.get("content", "")
+                    offset += data.get("length", 0)
+            except Exception:
+                pass
+            
+            latest_data += content
+            
+            if not content:
+                time.sleep(0.5)
+                fail_cnt += 1
+                if fail_cnt > 50:
+                    break
+            else:
+                fail_cnt = 0
+                
+            if cls.log_event.get(logging_dir, False):
+                cls.log_event[logging_dir] = False
+                break
+
+            if '\n' not in latest_data:
+                continue
+            
+            latest_lines = latest_data.split('\n')
+            if latest_data[-1] != '\n':
+                latest_data = latest_lines[-1]
+                latest_lines = latest_lines[:-1]
+            else:
+                latest_data = ''
+            
+            lines.extend(latest_lines)
+            if not lines:
+                continue
+                
+            start = cls.get_initial(lines[-1])
+            if start:
+                i = len(lines) - 2
+                while i >= 0:
+                    if lines[i].startswith(start):
+                        del lines[i]
+                        i -= 1
+                    else:
+                        break
+            yield [gr.update(value='\n'.join(lines))] + Runtime.plot(task)
+            time.sleep(0.5)
+
+    @classmethod
     def wait(cls, logging_dir, task):
         if not logging_dir:
             return [None] + Runtime.plot(task)
+            
+        remote_worker = os.environ.get('SWIFT_REMOTE_WORKER')
+        if remote_worker:
+            if not remote_worker.startswith('http'):
+                remote_worker = f'http://{remote_worker}'
+            yield from cls.wait_remote(logging_dir, task, remote_worker)
+            return
+
         log_file = os.path.join(logging_dir, 'run.log')
         cls.log_event[logging_dir] = False
         offset = 0
@@ -498,6 +567,25 @@ class Runtime(BaseUI):
     @staticmethod
     def refresh_tasks(running_task=None, group=None):
         output_dir = running_task if not running_task or 'pid:' not in running_task else None
+        
+        remote_worker = os.environ.get('SWIFT_REMOTE_WORKER')
+        if remote_worker:
+            if not remote_worker.startswith('http'):
+                remote_worker = f'http://{remote_worker}'
+            try:
+                response = requests.get(f"{remote_worker}/tasks", params={"group": group}, timeout=5)
+                if response.status_code == 200:
+                    tasks = response.json().get("tasks", [])
+                    selected = None
+                    if running_task and running_task in tasks:
+                        selected = running_task
+                    if not selected and tasks:
+                        selected = tasks[0]
+                    return gr.update(choices=tasks, value=selected)
+            except Exception as e:
+                logger.error(f"Failed to fetch remote tasks: {e}")
+                return gr.update(choices=[], value=None)
+
         process_name = 'swift'
         negative_names = ['swift.exe', 'swift-script.py']
         cmd_name = ['pt', 'sft'] if group == 'llm_train' else ['rlhf']
@@ -513,7 +601,7 @@ class Runtime(BaseUI):
             ]) and not any([  # noqa
                     negative_name in cmdline for negative_name in negative_names  # noqa
                     for cmdline in cmdlines  # noqa
-            ]) and any([cmdline in cmd_name for cmdline in cmdlines]):  # noqa
+            ]) and any([c in cmdline for c in cmd_name for cmdline in cmdlines]):  # noqa
                 if any([group == 'llm_rlhf' and 'grpo' in cmdline for cmdline in cmdlines]):
                     continue
                 if group == 'llm_grpo' and all(['grpo' not in cmdline for cmdline in cmdlines]):
@@ -581,6 +669,19 @@ class Runtime(BaseUI):
         if task:
             pid, all_args = Runtime.parse_info_from_cmdline(task)
             output_dir = all_args['output_dir']
+            
+            remote_worker = os.environ.get('SWIFT_REMOTE_WORKER')
+            if remote_worker:
+                if not remote_worker.startswith('http'):
+                    remote_worker = f'http://{remote_worker}'
+                try:
+                    requests.post(f"{remote_worker}/kill", json={"pid": int(pid), "output_dir": output_dir}, timeout=5)
+                    Runtime.break_log_event(task)
+                    return [Runtime.refresh_tasks()] + [gr.update(value=None)] * (len(Runtime.get_plot(task)) + 1)
+                except Exception as e:
+                    logger.error(f"Failed to kill remote task: {e}")
+                    raise e
+
             if sys.platform == 'win32':
                 command = ['taskkill', '/f', '/t', '/pid', pid]
             else:
