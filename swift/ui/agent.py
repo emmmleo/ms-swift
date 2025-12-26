@@ -3,12 +3,21 @@ import subprocess
 import time
 import psutil
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from typing import Dict, Optional, List
 import logging
 from datetime import datetime
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Setup logging
 logging.basicConfig(level=logging.INFO)
@@ -19,6 +28,17 @@ class TrainRequest(BaseModel):
     env: Dict[str, str]
     log_file: str
     work_dir: Optional[str] = None
+
+class LoginRequest(BaseModel):
+    username: str
+    password: str
+
+@app.post("/login")
+async def login(request: LoginRequest):
+    # Mock authentication
+    if request.username == "admin" and request.password == "swift":
+        return {"token": "mock-token-12345", "username": "admin"}
+    raise HTTPException(status_code=401, detail="Invalid credentials")
 
 class KillRequest(BaseModel):
     pid: int
@@ -73,7 +93,17 @@ async def list_tasks(group: Optional[str] = None):
     """
     process_name = 'swift'
     negative_names = ['swift.exe', 'swift-script.py']
-    cmd_name = ['pt', 'sft'] if group == 'llm_train' else ['rlhf']
+    
+    if group == 'llm_train':
+        cmd_name = ['pt', 'sft']
+    elif group == 'llm_rlhf':
+        cmd_name = ['rlhf']
+    elif group == 'llm_infer':
+        cmd_name = ['infer', 'deploy']
+    elif group == 'llm_export':
+        cmd_name = ['export']
+    else:
+        cmd_name = ['pt', 'sft', 'rlhf', 'infer', 'deploy', 'export', 'eval']
     
     tasks = []
     

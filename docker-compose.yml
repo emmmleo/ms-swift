@@ -1,0 +1,40 @@
+version: '3.8'
+
+services:
+  # Backend Service (GPU Support)
+  backend:
+    build:
+      context: .
+      dockerfile: docker/backend/Dockerfile
+    container_name: swift-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./output:/app/output
+      - ./logs:/app/logs
+      - .:/app
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+    restart: unless-stopped
+    environment:
+      - NVIDIA_VISIBLE_DEVICES=all
+    command: python swift/ui/agent.py
+
+  # Frontend Service (Vue.js)
+  frontend:
+    build:
+      context: ./web-ui
+      dockerfile: Dockerfile
+    container_name: swift-frontend
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+    environment:
+      - VITE_API_URL=http://backend:8000
