@@ -24,3 +24,11 @@ export const getLog = (logFile, offset) => {
 export const killTask = (pid, outputDir) => {
   return api.post('/kill', { pid, output_dir: outputDir })
 }
+
+export const getModels = () => {
+  return api.get('/models')
+}
+
+export const getDatasets = () => {
+  return api.get('/datasets')
+}

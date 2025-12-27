@@ -192,6 +192,19 @@ async def kill_task(request: KillRequest):
         logger.error(f"Failed to kill task: {e}")
         raise HTTPException(status_code=500, detail=str(e))
 
+from swift.llm.model.register import get_all_models
+from swift.llm.dataset.register import get_dataset_list
+
+@app.get("/models")
+async def list_models():
+    """Get all supported models"""
+    return {"models": get_all_models()}
+
+@app.get("/datasets")
+async def list_datasets():
+    """Get all supported datasets"""
+    return {"datasets": get_dataset_list()}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
