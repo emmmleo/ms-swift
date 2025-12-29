@@ -102,7 +102,7 @@
                 <el-row :gutter="24">
                   <el-col :span="12">
                     <el-form-item label="Batch Size">
-                      <el-input-number v-model="form.batch_size" :min="1" />
+                      <el-input-number v-model="form.per_device_train_batch_size" :min="1" />
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
@@ -118,12 +118,6 @@
                       <el-input-number v-model="form.max_length" :min="128" :step="128" />
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="验证集比例">
-                      <el-input-number v-model="form.val_dataset_sample" :min="-1" :step="100" />
-                      <div class="form-tip">-1 表示自动划分</div>
-                    </el-form-item>
-                  </el-col>
                 </el-row>
 
                 <el-form-item label="随机种子 (Seed)">
@@ -131,7 +125,7 @@
                 </el-form-item>
                 
                 <el-form-item label="精度 (Dtype)">
-                  <el-select v-model="form.dtype">
+                  <el-select v-model="form.torch_dtype">
                     <el-option label="bf16" value="bf16" />
                     <el-option label="fp16" value="fp16" />
                     <el-option label="fp32" value="fp32" />
@@ -165,7 +159,7 @@
                 </el-form-item>
                 
                 <el-form-item label="Target Modules">
-                  <el-input v-model="form.lora_target_modules" placeholder="ALL" />
+                  <el-input v-model="form.target_modules" placeholder="ALL" />
                   <div class="form-tip">默认为 ALL，也可指定如 q_proj,v_proj</div>
                 </el-form-item>
 
@@ -207,7 +201,8 @@
                 :log-file="currentLogFile" 
                 :output-dir="form.output_dir"
                 :minimized="isMinimized"
-                v-model:pid="runningPid" 
+                :pid="runningPid" 
+                @update:pid="runningPid = $event"
                 @toggle-minimize="isMinimized = !isMinimized"
                 @close="showLogs = false"
               />
@@ -240,25 +235,24 @@ const form = ref({
   model_id: 'qwen/Qwen-7B-Chat',
   output_dir: 'output/sft_' + Date.now(),
   dataset: ['alpaca-zh'],
-  sft_type: 'lora',
-  train_type: 'sft',
+  sft_type: 'lora', // This maps to --train_type
+  train_type: 'sft', // This determines the command (swift sft)
   
   // Training
   learning_rate: '1e-4',
   num_train_epochs: 1,
-  batch_size: 1,
+  per_device_train_batch_size: 1,
   gradient_accumulation_steps: 16,
   max_length: 2048,
-  val_dataset_sample: -1,
   seed: 42,
-  dtype: 'bf16',
+  torch_dtype: 'bf16',
   gradient_checkpointing: true,
   
   // LoRA
   lora_rank: 8,
   lora_alpha: 32,
   lora_dropout: 0.05,
-  lora_target_modules: 'ALL',
+  target_modules: 'ALL',
   use_rslora: false,
   use_dora: false,
   
@@ -282,13 +276,16 @@ const handleLaunch = async () => {
   try {
     const command = ['swift', form.value.train_type] // sft or pt
     
+    // Manual mapping for sft_type -> --train_type (lora/full)
+    command.push('--train_type', form.value.sft_type)
+
     // Parameter mapping
     const fields = [
-      'model_id', 'output_dir', 'sft_type',
-      'learning_rate', 'num_train_epochs', 'batch_size',
-      'gradient_accumulation_steps', 'max_length', 'val_dataset_sample',
-      'seed', 'dtype',
-      'lora_rank', 'lora_alpha', 'lora_dropout', 'lora_target_modules',
+      'model_id', 'output_dir',
+      'learning_rate', 'num_train_epochs', 'per_device_train_batch_size',
+      'gradient_accumulation_steps', 'max_length',
+      'seed', 'torch_dtype',
+      'lora_rank', 'lora_alpha', 'lora_dropout', 'target_modules',
       'deepspeed'
     ]
     

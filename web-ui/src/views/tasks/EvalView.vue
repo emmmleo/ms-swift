@@ -79,8 +79,8 @@
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
-                    <el-form-item label="Batch Size">
-                      <el-input-number v-model="form.eval_batch_size" :min="1" />
+                    <el-form-item label="并发数 (Num Proc)">
+                      <el-input-number v-model="form.eval_num_proc" :min="1" />
                     </el-form-item>
                   </el-col>
                 </el-row>
@@ -118,7 +118,8 @@
                 :log-file="currentLogFile" 
                 :output-dir="'logs/eval'"
                 :minimized="isMinimized"
-                v-model:pid="runningPid" 
+                :pid="runningPid" 
+                @update:pid="runningPid = $event"
                 @toggle-minimize="isMinimized = !isMinimized"
                 @close="showLogs = false"
               />
@@ -155,7 +156,7 @@ const form = ref({
   
   // Advanced
   eval_limit: 10,
-  eval_batch_size: 4,
+  eval_num_proc: 16,
   eval_backend: 'Native',
   temperature: 0,
   more_params: ''
@@ -179,7 +180,7 @@ const handleLaunch = async () => {
     
     // Parameter mapping
     const fields = [
-      'model_id', 'ckpt_dir', 'eval_batch_size', 'eval_backend', 'temperature'
+      'model_id', 'ckpt_dir', 'eval_num_proc', 'eval_backend', 'temperature'
     ]
     
     fields.forEach(f => {

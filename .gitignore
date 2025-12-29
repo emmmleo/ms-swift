@@ -149,3 +149,27 @@ megatron_output/
 
 # ast template
 ast_index_file.py
+
+
+# Node.js / npm
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
+.npm
+.nvm
+.pnpm-debug.log*
+dist/
+build/
+.cache/
+.next/
+.nuxt/
+.vuepress/dist/
+serverless/
+.fusebox/
+.dynamodb/
+.tern-port
+.webpack/
+*.tsbuildinfo

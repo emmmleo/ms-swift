@@ -113,7 +113,7 @@
             <el-tab-pane label="高级参数 (Advanced)" name="advanced">
               <el-form :model="form" label-width="160px" label-position="left">
                 <el-form-item label="精度 (Dtype)">
-                  <el-select v-model="form.dtype">
+                  <el-select v-model="form.torch_dtype">
                     <el-option label="Auto" value="" />
                     <el-option label="bf16" value="bf16" />
                     <el-option label="fp16" value="fp16" />
@@ -153,7 +153,8 @@
                 :output-dir="'logs/deploy'" 
                 :service-url="serviceUrl"
                 :minimized="isMinimized"
-                v-model:pid="runningPid" 
+                :pid="runningPid" 
+                @update:pid="runningPid = $event"
                 @toggle-minimize="isMinimized = !isMinimized"
                 @close="showLogs = false"
               />
@@ -197,7 +198,7 @@ const form = ref({
   repetition_penalty: 1.05,
   
   // Advanced
-  dtype: '',
+  torch_dtype: '',
   max_model_len: undefined,
   gpu_memory_utilization: 0.9,
   more_params: ''
@@ -221,7 +222,7 @@ const handleLaunch = async () => {
     const fields = [
       'model_id', 'ckpt_dir', 'port', 'host', 'infer_backend',
       'max_new_tokens', 'temperature', 'top_k', 'top_p', 'repetition_penalty',
-      'dtype', 'max_model_len', 'gpu_memory_utilization'
+      'torch_dtype', 'max_model_len', 'gpu_memory_utilization'
     ]
     
     fields.forEach(f => {

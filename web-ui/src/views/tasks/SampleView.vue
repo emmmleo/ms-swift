@@ -52,7 +52,28 @@
 
                 <el-form-item label="采样数量">
                   <el-input-number v-model="form.num_return_sequences" :min="1" />
-                  <div class="form-tip">采样多少条数据进行预览</div>
+                  <div class="form-tip">The number of raw sequences to return</div>
+                </el-form-item>
+                
+                <el-form-item label="采样类型">
+                  <el-radio-group v-model="form.sampler_type">
+                    <el-radio-button label="sample">Sample</el-radio-button>
+                    <el-radio-button label="distill">Distill</el-radio-button>
+                  </el-radio-group>
+                </el-form-item>
+
+                <el-form-item label="采样引擎">
+                  <el-select v-model="form.sampler_engine">
+                    <el-option label="PyTorch" value="pt" />
+                    <el-option label="vLLM" value="vllm" />
+                    <el-option label="LMDeploy" value="lmdeploy" />
+                    <el-option label="No Engine" value="no" />
+                    <el-option label="Client" value="client" />
+                  </el-select>
+                </el-form-item>
+
+                <el-form-item label="Temperature">
+                  <el-input-number v-model="form.temperature" :min="0" :step="0.1" />
                 </el-form-item>
               </el-form>
             </el-tab-pane>
@@ -111,7 +132,10 @@ const datasetOptions = ref([])
 const form = ref({
   dataset: 'alpaca-zh',
   output_dir: 'output/sample_' + Date.now(),
-  num_return_sequences: 5,
+  num_return_sequences: 64,
+  sampler_type: 'sample',
+  sampler_engine: 'pt',
+  temperature: 1.0,
   more_params: ''
 })
 
@@ -132,17 +156,17 @@ const handleLaunch = async () => {
     if (form.value.dataset) {
       command.push('--dataset', form.value.dataset)
     }
-    if (form.value.output_dir) {
-      command.push('--output_dir', form.value.output_dir)
-    }
+    // Pass known args
+    const fields = [
+      'output_dir', 'num_return_sequences', 'sampler_type', 
+      'sampler_engine', 'temperature'
+    ]
     
-    // Pass num_return_sequences as an argument if swift sample supports it, 
-    // or assume it's part of logic. 
-    // Since I'm not sure of exact arg name for swift sample CLI, I'll append it.
-    // If swift sample doesn't take it, user can use more_params.
-    // But let's assume it does or we pass it as custom arg.
-    // Actually, maybe --max_length or --num_samples?
-    // I'll stick to logic: if swift sample is just printing, log viewer will show it.
+    fields.forEach(f => {
+      if (form.value[f] !== '' && form.value[f] !== null) {
+        command.push(`--${f}`, String(form.value[f]))
+      }
+    })
     
     if (form.value.more_params) {
       command.push(...form.value.more_params.trim().split(/\s+/))

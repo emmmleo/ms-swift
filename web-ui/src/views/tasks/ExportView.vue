@@ -58,7 +58,6 @@
                   <el-select v-model="form.export_type" placeholder="选择导出类型">
                     <el-option label="Merge LoRA (合并权重)" value="merge_lora" />
                     <el-option label="Quantization (量化)" value="quant" />
-                    <el-option label="ONNX" value="onnx" />
                     <el-option label="Ollama (GGUF)" value="ollama" />
                   </el-select>
                 </el-form-item>
@@ -84,7 +83,11 @@
                 </el-form-item>
 
                 <el-form-item label="量化数据集">
-                  <el-input v-model="form.quant_dataset" placeholder="用于校准的数据集 (e.g. alpaca-zh)" />
+                  <el-input v-model="form.dataset" placeholder="用于校准的数据集 (e.g. alpaca-zh)" />
+                </el-form-item>
+                
+                <el-form-item label="量化样本数">
+                  <el-input-number v-model="form.quant_n_samples" :min="1" />
                 </el-form-item>
               </el-form>
             </el-tab-pane>
@@ -159,7 +162,8 @@ const form = ref({
   // Quant
   quant_method: 'awq',
   quant_bits: 4,
-  quant_dataset: '',
+  dataset: '',
+  quant_n_samples: 256,
   
   // Advanced
   push_to_hub: false,
@@ -196,11 +200,10 @@ const handleLaunch = async () => {
     } else if (form.value.export_type === 'quant') {
       command.push('--quant_method', form.value.quant_method)
       command.push('--quant_bits', String(form.value.quant_bits))
-      if (form.value.quant_dataset) {
-        command.push('--dataset', form.value.quant_dataset)
+      if (form.value.dataset) {
+        command.push('--dataset', form.value.dataset)
       }
-    } else if (form.value.export_type === 'onnx') {
-      command.push('--to_onnx', 'true')
+      command.push('--quant_n_samples', String(form.value.quant_n_samples))
     } else if (form.value.export_type === 'ollama') {
       command.push('--to_ollama', 'true')
     }

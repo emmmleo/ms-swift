@@ -116,7 +116,7 @@
                 <el-row :gutter="24">
                   <el-col :span="12">
                     <el-form-item label="Batch Size">
-                      <el-input-number v-model="form.batch_size" :min="1" />
+                      <el-input-number v-model="form.per_device_train_batch_size" :min="1" />
                     </el-form-item>
                   </el-col>
                   <el-col :span="12">
@@ -153,7 +153,7 @@
                 </el-form-item>
                 
                 <el-form-item label="精度 (Dtype)">
-                  <el-select v-model="form.dtype">
+                  <el-select v-model="form.torch_dtype">
                     <el-option label="bf16" value="bf16" />
                     <el-option label="fp16" value="fp16" />
                     <el-option label="fp32" value="fp32" />
@@ -198,7 +198,7 @@
                   </el-form-item>
                   
                   <el-form-item label="Target Modules">
-                    <el-input v-model="form.lora_target_modules" placeholder="ALL" />
+                    <el-input v-model="form.target_modules" placeholder="ALL" />
                   </el-form-item>
                 </template>
               </el-form>
@@ -208,7 +208,7 @@
             <el-tab-pane label="高级参数 (Advanced)" name="advanced">
               <el-form :model="form" label-width="160px" label-position="left">
                 <el-form-item label="参考模型 (Ref Model)" v-if="form.rlhf_type !== 'grpo'">
-                  <el-input v-model="form.ref_model_id" placeholder="可选，默认与模型ID一致" />
+                  <el-input v-model="form.ref_model" placeholder="可选，默认与模型ID一致" />
                   <div class="form-tip">用于计算 KL 散度的参考模型</div>
                 </el-form-item>
 
@@ -279,12 +279,12 @@ const form = ref({
   // Training
   learning_rate: '5e-6',
   num_train_epochs: 1,
-  batch_size: 1,
+  per_device_train_batch_size: 1,
   gradient_accumulation_steps: 16,
   max_length: 2048,
   beta: 0.1,
   seed: 42,
-  dtype: 'bf16',
+  torch_dtype: 'bf16',
   gradient_checkpointing: true,
   
   // GRPO Training specific
@@ -297,10 +297,10 @@ const form = ref({
   lora_rank: 8,
   lora_alpha: 32,
   lora_dropout: 0.05,
-  lora_target_modules: 'ALL',
+  target_modules: 'ALL',
 
   // Advanced
-  ref_model_id: '',
+  ref_model: '',
   deepspeed: '',
   more_params: ''
 })
@@ -323,8 +323,8 @@ const handleLaunch = async () => {
     // Common fields
     const commonFields = [
       'rlhf_type', 'model_id', 'output_dir',
-      'learning_rate', 'num_train_epochs', 'batch_size',
-      'seed', 'dtype', 'deepspeed'
+      'learning_rate', 'num_train_epochs', 'per_device_train_batch_size',
+      'seed', 'torch_dtype', 'deepspeed'
     ]
     
     commonFields.forEach(f => {
@@ -348,7 +348,7 @@ const handleLaunch = async () => {
       command.push('--max_length', String(form.value.max_length))
       command.push('--beta', String(form.value.beta))
       if (form.value.gradient_checkpointing) command.push('--gradient_checkpointing', 'true')
-      if (form.value.ref_model_id) command.push('--ref_model_id', form.value.ref_model_id)
+      if (form.value.ref_model) command.push('--ref_model', form.value.ref_model)
     }
 
     // Handle dataset (array -> comma separated string)
@@ -364,7 +364,7 @@ const handleLaunch = async () => {
         command.push('--lora_rank', String(form.value.lora_rank))
         command.push('--lora_alpha', String(form.value.lora_alpha))
         command.push('--lora_dropout', String(form.value.lora_dropout))
-        command.push('--lora_target_modules', form.value.lora_target_modules)
+        command.push('--target_modules', form.value.target_modules)
     } else {
         command.push('--sft_type', 'full')
     }
