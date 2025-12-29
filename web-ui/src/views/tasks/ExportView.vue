@@ -19,6 +19,9 @@
             <div class="card-header">
               <span class="title">🛠️ 参数配置</span>
               <div class="actions">
+                <el-button v-if="!showLogs && (currentLogFile || runningPid)" @click="showLogs = true" size="large" round>
+                  📜 查看日志
+                </el-button>
                 <el-button type="primary" size="large" @click="handleLaunch" :loading="launching" round>
                   🚀 开始导出
                 </el-button>
@@ -111,26 +114,17 @@
           </el-tabs>
         </el-card>
 
-        <!-- Log Viewer (Drawer Style) -->
+        <!-- Log Viewer (Collapsible Drawer) -->
         <transition name="slide-up">
-          <div class="log-drawer" v-if="showLogs || runningPid">
-            <div class="log-header">
-              <div class="log-title">
-                <span>📄 实时导出日志</span>
-                <el-tag v-if="runningPid" type="success" effect="dark" size="small" class="ml-2">Running: {{ runningPid }}</el-tag>
-                <el-tag v-else type="info" effect="dark" size="small" class="ml-2">Stopped</el-tag>
-              </div>
-              <div class="log-controls">
-                <el-button link @click="showLogs = false" v-if="!runningPid">
-                  <el-icon><Close /></el-icon>
-                </el-button>
-              </div>
-            </div>
+          <div class="log-drawer" v-show="showLogs" :class="{ minimized: isMinimized }">
             <div class="log-content">
               <LogViewer 
                 :log-file="currentLogFile" 
                 :output-dir="form.output_dir"
+                :minimized="isMinimized"
                 v-model:pid="runningPid" 
+                @toggle-minimize="isMinimized = !isMinimized"
+                @close="showLogs = false"
               />
             </div>
           </div>
@@ -144,12 +138,12 @@
 import { ref, onMounted } from 'vue'
 import { launchTraining, getModels } from '../../api'
 import { ElMessage } from 'element-plus'
-import { Close } from '@element-plus/icons-vue'
 import LogViewer from '../../components/LogViewer.vue'
 
 const activeTab = ref('basic')
 const launching = ref(false)
 const showLogs = ref(false)
+const isMinimized = ref(false)
 const currentLogFile = ref('')
 const runningPid = ref(null)
 
@@ -234,6 +228,7 @@ const handleLaunch = async () => {
     currentLogFile.value = res.data.log_file
     runningPid.value = res.data.pid
     showLogs.value = true
+    isMinimized.value = false
     
   } catch (error) {
     ElMessage.error('启动失败: ' + error.message)
@@ -312,30 +307,19 @@ const handleLaunch = async () => {
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  transition: height 0.3s ease;
 }
 
-.log-header {
-  height: 40px;
-  background: #252526;
-  padding: 0 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #333;
-}
-
-.log-title {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
+.log-drawer.minimized {
+  height: 40px; /* Only toolbar visible */
+  overflow: hidden;
 }
 
 .log-content {
   flex: 1;
   overflow: hidden;
   position: relative;
+  height: 100%;
 }
 
 /* Transitions */

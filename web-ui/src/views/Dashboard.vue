@@ -16,13 +16,9 @@
             <el-icon><Edit /></el-icon>
             <span>预训练/微调 (SFT/PT)</span>
           </el-menu-item>
-          <el-menu-item index="/training/rlhf">
+          <el-menu-item index="/training/rl">
             <el-icon><Aim /></el-icon>
-            <span>人类对齐 (RLHF/DPO)</span>
-          </el-menu-item>
-          <el-menu-item index="/training/grpo">
-            <el-icon><Connection /></el-icon>
-            <span>GRPO 训练</span>
+            <span>强化学习 (RL)</span>
           </el-menu-item>
         </el-menu-item-group>
 
@@ -91,8 +87,7 @@ const username = ref(localStorage.getItem('username') || 'User')
 
 const menuItems = [
   { path: '/training/sft', title: 'SFT / PT', desc: '指令监督微调 / 预训练', icon: '🚀' },
-  { path: '/training/rlhf', title: 'RLHF / DPO', desc: '人类偏好对齐 (DPO, CPO, ORPO)', icon: '⚖️' },
-  { path: '/training/grpo', title: 'GRPO', desc: 'Group Relative Policy Optimization', icon: '🔗' },
+  { path: '/training/rl', title: 'Reinforcement Learning', desc: '强化学习 (RLHF / DPO / GRPO)', icon: '🧠' },
   { path: '/training/infer', title: 'Inference', desc: '模型推理与Web部署', icon: '🤖' },
   { path: '/training/eval', title: 'Evaluation', desc: '模型能力评测 (CEval, MMLU...)', icon: '📊' },
   { path: '/training/export', title: 'Export', desc: '模型导出与量化 (AWQ, GPTQ)', icon: '📦' },

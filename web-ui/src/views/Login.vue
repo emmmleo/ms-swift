@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <div class="logo">🚀</div>
-        <h1>Swift 训练平台</h1>
+        <h1>SkyForge</h1>
         <p>让大模型训练更简单、更高效</p>
       </div>
       
@@ -34,7 +34,7 @@
         </el-form>
         
         <div class="login-footer">
-          <span class="tips">默认账号: admin / swift</span>
+          <span class="tips">默认账号: SkyForge / 123456</span>
         </div>
       </el-card>
 

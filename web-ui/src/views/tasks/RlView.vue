@@ -4,8 +4,8 @@
       <el-page-header @back="$router.push('/dashboard')">
         <template #content>
           <div class="header-content">
-            <span class="text-large font-600 mr-3">🔢 GRPO 训练</span>
-            <el-tag type="info" effect="plain" round>Group Relative Policy Optimization</el-tag>
+            <span class="text-large font-600 mr-3">🧠 强化学习 (Reinforcement Learning)</span>
+            <el-tag type="warning" effect="plain" round>RLHF / DPO / GRPO</el-tag>
           </div>
         </template>
       </el-page-header>
@@ -19,8 +19,11 @@
             <div class="card-header">
               <span class="title">🛠️ 参数配置</span>
               <div class="actions">
+                <el-button v-if="!showLogs && (currentLogFile || runningPid)" @click="showLogs = true" size="large" round>
+                  📜 查看日志
+                </el-button>
                 <el-button type="primary" size="large" @click="handleLaunch" :loading="launching" round>
-                  🚀 开始 GRPO 训练
+                  🚀 开始 RL 训练
                 </el-button>
               </div>
             </div>
@@ -30,13 +33,25 @@
             <!-- 基础配置 -->
             <el-tab-pane label="基础配置 (Basic)" name="basic">
               <el-form :model="form" label-width="160px" label-position="left">
+                <el-form-item label="RL 算法">
+                  <el-radio-group v-model="form.rlhf_type">
+                    <el-radio-button label="dpo">DPO</el-radio-button>
+                    <el-radio-button label="cpo">CPO</el-radio-button>
+                    <el-radio-button label="orpo">ORPO</el-radio-button>
+                    <el-radio-button label="simpo">SimPO</el-radio-button>
+                    <el-radio-button label="kto">KTO</el-radio-button>
+                    <el-radio-button label="ppo">PPO</el-radio-button>
+                    <el-radio-button label="grpo">GRPO</el-radio-button>
+                  </el-radio-group>
+                </el-form-item>
+
                 <el-form-item label="模型 ID / 路径">
                   <el-select 
                     v-model="form.model_id" 
                     filterable 
                     allow-create 
                     default-first-option 
-                    placeholder="选择或输入模型 ID"
+                    placeholder="选择或输入模型 ID (通常是 SFT 后的模型)"
                     style="width: 100%"
                   >
                     <el-option v-for="item in modelOptions" :key="item" :label="item" :value="item" />
@@ -50,7 +65,7 @@
                     filterable 
                     allow-create 
                     default-first-option 
-                    placeholder="选择或输入数据集 (e.g. gsm8k)"
+                    placeholder="选择或输入数据集"
                     style="width: 100%"
                   >
                     <el-option v-for="item in datasetOptions" :key="item" :label="item" :value="item" />
@@ -62,7 +77,8 @@
                   <el-input v-model="form.output_dir" />
                 </el-form-item>
 
-                <el-form-item label="奖励函数 (Reward)">
+                <!-- GRPO Specific: Reward Functions -->
+                <el-form-item label="奖励函数 (Reward)" v-if="form.rlhf_type === 'grpo'">
                   <el-select 
                     v-model="form.reward_funcs" 
                     multiple 
@@ -99,32 +115,103 @@
 
                 <el-row :gutter="24">
                   <el-col :span="12">
-                    <el-form-item label="生成数量 (Num Gens)">
+                    <el-form-item label="Batch Size">
+                      <el-input-number v-model="form.batch_size" :min="1" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="梯度累积步数" v-if="form.rlhf_type !== 'grpo'">
+                      <el-input-number v-model="form.gradient_accumulation_steps" :min="1" />
+                    </el-form-item>
+                    <!-- GRPO uses num_generations, maybe distinct from grad acc? Keeping generic if not conflicting -->
+                  </el-col>
+                </el-row>
+
+                <el-row :gutter="24">
+                  <el-col :span="12">
+                    <el-form-item label="最大长度 (Max Length)" v-if="form.rlhf_type !== 'grpo'">
+                      <el-input-number v-model="form.max_length" :min="128" :step="128" />
+                    </el-form-item>
+                    <el-form-item label="最大生成长度" v-if="form.rlhf_type === 'grpo'">
+                      <el-input-number v-model="form.max_completion_length" :min="128" :step="128" />
+                    </el-form-item>
+                  </el-col>
+                  <el-col :span="12">
+                    <el-form-item label="Beta / KL Coeff" v-if="form.rlhf_type !== 'grpo'">
+                      <el-input-number v-model="form.beta" :step="0.1" />
+                      <div class="form-tip">KL 惩罚系数 (DPO/PPO)</div>
+                    </el-form-item>
+                    <el-form-item label="生成数量 (Num Gens)" v-if="form.rlhf_type === 'grpo'">
                       <el-input-number v-model="form.num_generations" :min="1" />
                       <div class="form-tip">每个提示生成的回复数量</div>
                     </el-form-item>
                   </el-col>
-                  <el-col :span="12">
-                    <el-form-item label="最大生成长度">
-                      <el-input-number v-model="form.max_completion_length" :min="128" :step="128" />
-                    </el-form-item>
-                  </el-col>
                 </el-row>
+
+                <el-form-item label="随机种子 (Seed)">
+                  <el-input-number v-model="form.seed" />
+                </el-form-item>
                 
-                <el-form-item label="Batch Size">
-                    <el-input-number v-model="form.batch_size" :min="1" />
+                <el-form-item label="精度 (Dtype)">
+                  <el-select v-model="form.dtype">
+                    <el-option label="bf16" value="bf16" />
+                    <el-option label="fp16" value="fp16" />
+                    <el-option label="fp32" value="fp32" />
+                  </el-select>
                 </el-form-item>
 
-                <el-form-item label="使用 VLLM 加速">
+                <el-form-item label="使用梯度检查点" v-if="form.rlhf_type !== 'grpo'">
+                  <el-switch v-model="form.gradient_checkpointing" />
+                </el-form-item>
+
+                <el-form-item label="使用 VLLM 加速" v-if="form.rlhf_type === 'grpo'">
                   <el-switch v-model="form.use_vllm" />
                   <div class="form-tip">使用 vLLM 进行加速生成</div>
                 </el-form-item>
               </el-form>
             </el-tab-pane>
 
+            <!-- LoRA / Tuner -->
+            <el-tab-pane label="LoRA / Tuner" name="lora">
+              <el-form :model="form" label-width="160px" label-position="left">
+                <el-form-item label="使用 LoRA">
+                  <el-switch v-model="form.use_lora" />
+                  <div class="form-tip">使用 LoRA 进行参数高效微调</div>
+                </el-form-item>
+
+                <template v-if="form.use_lora">
+                  <el-row :gutter="24">
+                    <el-col :span="12">
+                      <el-form-item label="LoRA Rank">
+                        <el-input-number v-model="form.lora_rank" :min="1" />
+                      </el-form-item>
+                    </el-col>
+                    <el-col :span="12">
+                      <el-form-item label="LoRA Alpha">
+                        <el-input-number v-model="form.lora_alpha" :min="1" />
+                      </el-form-item>
+                    </el-col>
+                  </el-row>
+
+                  <el-form-item label="LoRA Dropout">
+                    <el-input v-model="form.lora_dropout" />
+                  </el-form-item>
+                  
+                  <el-form-item label="Target Modules">
+                    <el-input v-model="form.lora_target_modules" placeholder="ALL" />
+                  </el-form-item>
+                </template>
+              </el-form>
+            </el-tab-pane>
+
             <!-- 高级参数 -->
             <el-tab-pane label="高级参数 (Advanced)" name="advanced">
               <el-form :model="form" label-width="160px" label-position="left">
+                <el-form-item label="参考模型 (Ref Model)" v-if="form.rlhf_type !== 'grpo'">
+                  <el-input v-model="form.ref_model_id" placeholder="可选，默认与模型ID一致" />
+                  <div class="form-tip">用于计算 KL 散度的参考模型</div>
+                </el-form-item>
+
                 <el-form-item label="DeepSpeed">
                   <el-input v-model="form.deepspeed" placeholder="path/to/ds_config.json" />
                 </el-form-item>
@@ -142,26 +229,18 @@
           </el-tabs>
         </el-card>
 
-        <!-- Log Viewer (Drawer Style) -->
+        <!-- Log Viewer (Collapsible Drawer) -->
         <transition name="slide-up">
-          <div class="log-drawer" v-if="showLogs || runningPid">
-            <div class="log-header">
-              <div class="log-title">
-                <span>📄 实时训练日志</span>
-                <el-tag v-if="runningPid" type="success" effect="dark" size="small" class="ml-2">Running: {{ runningPid }}</el-tag>
-                <el-tag v-else type="info" effect="dark" size="small" class="ml-2">Stopped</el-tag>
-              </div>
-              <div class="log-controls">
-                <el-button link @click="showLogs = false" v-if="!runningPid">
-                  <el-icon><Close /></el-icon>
-                </el-button>
-              </div>
-            </div>
+          <div class="log-drawer" v-show="showLogs" :class="{ minimized: isMinimized }">
             <div class="log-content">
               <LogViewer 
                 :log-file="currentLogFile" 
                 :output-dir="form.output_dir"
-                v-model:pid="runningPid" 
+                :minimized="isMinimized"
+                :pid="runningPid" 
+                @update:pid="runningPid = $event"
+                @toggle-minimize="isMinimized = !isMinimized"
+                @close="showLogs = false"
               />
             </div>
           </div>
@@ -175,12 +254,12 @@
 import { ref, onMounted } from 'vue'
 import { launchTraining, getModels, getDatasets } from '../../api'
 import { ElMessage } from 'element-plus'
-import { Close } from '@element-plus/icons-vue'
 import LogViewer from '../../components/LogViewer.vue'
 
 const activeTab = ref('basic')
 const launching = ref(false)
 const showLogs = ref(false)
+const isMinimized = ref(false)
 const currentLogFile = ref('')
 const runningPid = ref(null)
 
@@ -189,20 +268,39 @@ const datasetOptions = ref([])
 
 const form = ref({
   // Basic
+  rlhf_type: 'dpo',
   model_id: 'qwen/Qwen-7B-Chat',
-  dataset: ['gsm8k'],
-  output_dir: 'output/grpo_' + Date.now(),
+  dataset: [], 
+  output_dir: 'output/rlhf_' + Date.now(),
+  
+  // GRPO specific
   reward_funcs: ['accuracy'],
   
   // Training
-  learning_rate: '1e-5',
+  learning_rate: '5e-6',
   num_train_epochs: 1,
   batch_size: 1,
+  gradient_accumulation_steps: 16,
+  max_length: 2048,
+  beta: 0.1,
+  seed: 42,
+  dtype: 'bf16',
+  gradient_checkpointing: true,
+  
+  // GRPO Training specific
   num_generations: 4,
   max_completion_length: 1024,
   use_vllm: false,
-  
+
+  // LoRA
+  use_lora: true,
+  lora_rank: 8,
+  lora_alpha: 32,
+  lora_dropout: 0.05,
+  lora_target_modules: 'ALL',
+
   // Advanced
+  ref_model_id: '',
   deepspeed: '',
   more_params: ''
 })
@@ -220,19 +318,38 @@ onMounted(async () => {
 const handleLaunch = async () => {
   launching.value = true
   try {
-    const command = ['swift', 'rlhf', '--rlhf_type', 'grpo']
+    const command = ['swift', 'rlhf']
     
-    // Parameter mapping
-    const fields = [
-      'model_id', 'output_dir', 'learning_rate', 'num_train_epochs',
-      'batch_size', 'num_generations', 'max_completion_length', 'deepspeed'
+    // Common fields
+    const commonFields = [
+      'rlhf_type', 'model_id', 'output_dir',
+      'learning_rate', 'num_train_epochs', 'batch_size',
+      'seed', 'dtype', 'deepspeed'
     ]
     
-    fields.forEach(f => {
+    commonFields.forEach(f => {
       if (form.value[f] !== '' && form.value[f] !== null) {
         command.push(`--${f}`, String(form.value[f]))
       }
     })
+
+    // Conditional fields based on type
+    if (form.value.rlhf_type === 'grpo') {
+      // GRPO specific
+      if (form.value.reward_funcs && form.value.reward_funcs.length > 0) {
+        command.push('--reward_funcs', ...form.value.reward_funcs)
+      }
+      command.push('--num_generations', String(form.value.num_generations))
+      command.push('--max_completion_length', String(form.value.max_completion_length))
+      if (form.value.use_vllm) command.push('--use_vllm', 'true')
+    } else {
+      // Standard RLHF (DPO/PPO etc)
+      command.push('--gradient_accumulation_steps', String(form.value.gradient_accumulation_steps))
+      command.push('--max_length', String(form.value.max_length))
+      command.push('--beta', String(form.value.beta))
+      if (form.value.gradient_checkpointing) command.push('--gradient_checkpointing', 'true')
+      if (form.value.ref_model_id) command.push('--ref_model_id', form.value.ref_model_id)
+    }
 
     // Handle dataset (array -> comma separated string)
     if (Array.isArray(form.value.dataset) && form.value.dataset.length > 0) {
@@ -241,20 +358,23 @@ const handleLaunch = async () => {
       command.push('--dataset', form.value.dataset)
     }
 
-    // Handle reward funcs
-    if (form.value.reward_funcs && form.value.reward_funcs.length > 0) {
-      command.push('--reward_funcs', ...form.value.reward_funcs)
+    // LoRA params
+    if (form.value.use_lora) {
+        command.push('--sft_type', 'lora')
+        command.push('--lora_rank', String(form.value.lora_rank))
+        command.push('--lora_alpha', String(form.value.lora_alpha))
+        command.push('--lora_dropout', String(form.value.lora_dropout))
+        command.push('--lora_target_modules', form.value.lora_target_modules)
+    } else {
+        command.push('--sft_type', 'full')
     }
 
-    if (form.value.use_vllm) {
-      command.push('--use_vllm', 'true')
-    }
-
+    // Extra params
     if (form.value.more_params) {
       command.push(...form.value.more_params.trim().split(/\s+/))
     }
 
-    const logFile = `${form.value.output_dir}/grpo.log`
+    const logFile = `${form.value.output_dir}/rl.log`
     
     const res = await launchTraining({
       command,
@@ -262,10 +382,11 @@ const handleLaunch = async () => {
       log_file: logFile
     })
     
-    ElMessage.success('GRPO 任务已启动!')
+    ElMessage.success('RL 任务已启动!')
     currentLogFile.value = res.data.log_file
     runningPid.value = res.data.pid
     showLogs.value = true
+    isMinimized.value = false
     
   } catch (error) {
     ElMessage.error('启动失败: ' + error.message)
@@ -344,30 +465,19 @@ const handleLaunch = async () => {
   z-index: 1000;
   display: flex;
   flex-direction: column;
+  transition: height 0.3s ease;
 }
 
-.log-header {
-  height: 40px;
-  background: #252526;
-  padding: 0 15px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  border-bottom: 1px solid #333;
-}
-
-.log-title {
-  color: #fff;
-  font-size: 14px;
-  font-weight: 600;
-  display: flex;
-  align-items: center;
+.log-drawer.minimized {
+  height: 40px; /* Only toolbar visible */
+  overflow: hidden;
 }
 
 .log-content {
   flex: 1;
   overflow: hidden;
   position: relative;
+  height: 100%;
 }
 
 /* Transitions */

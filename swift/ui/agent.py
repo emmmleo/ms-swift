@@ -36,8 +36,8 @@ class LoginRequest(BaseModel):
 @app.post("/login")
 async def login(request: LoginRequest):
     # Mock authentication
-    if request.username == "admin" and request.password == "swift":
-        return {"token": "mock-token-12345", "username": "admin"}
+    if request.username == "SkyForge" and request.password == "123456":
+        return {"token": "mock-token-12345", "username": "SkyForge"}
     raise HTTPException(status_code=401, detail="Invalid credentials")
 
 class KillRequest(BaseModel):
@@ -150,7 +150,7 @@ async def list_tasks(group: Optional[str] = None):
     return {"tasks": tasks}
 
 @app.get("/log")
-async def get_log(log_file: str, offset: int = 0, limit: int = 2000):
+async def get_log(log_file: str, offset: int = 0, limit: int = 102400):
     """
     Read log file content
     """

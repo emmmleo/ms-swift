@@ -3,8 +3,7 @@ import Login from '../views/Login.vue'
 import Dashboard from '../views/Dashboard.vue'
 // import TaskView from '../views/TaskView.vue'
 import SftView from '../views/tasks/SftView.vue'
-import RlhfView from '../views/tasks/RlhfView.vue'
-import GrpoView from '../views/tasks/GrpoView.vue'
+import RlView from '../views/tasks/RlView.vue'
 import InferView from '../views/tasks/InferView.vue'
 import EvalView from '../views/tasks/EvalView.vue'
 import ExportView from '../views/tasks/ExportView.vue'
@@ -36,20 +35,22 @@ const router = createRouter({
       meta: { requiresAuth: true }
     },
     {
-      path: '/training/rlhf',
-      name: 'rlhf',
-      component: RlhfView,
+      path: '/training/rl',
+      name: 'rl',
+      component: RlView,
       meta: { requiresAuth: true }
+    },
+    {
+      path: '/training/rlhf',
+      redirect: '/training/rl'
     },
     {
       path: '/training/dpo',
-      redirect: '/training/rlhf'
+      redirect: '/training/rl'
     },
     {
       path: '/training/grpo',
-      name: 'grpo',
-      component: GrpoView,
-      meta: { requiresAuth: true }
+      redirect: '/training/rl'
     },
     {
       path: '/training/infer',
