@@ -297,7 +297,7 @@ const form = ref({
   lora_rank: 8,
   lora_alpha: 32,
   lora_dropout: 0.05,
-  target_modules: 'ALL',
+  target_modules: 'all-linear',
 
   // Advanced
   ref_model: '',

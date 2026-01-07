@@ -220,7 +220,7 @@ const sftSchema = [
       { prop: 'lora_rank', label: 'LoRA Rank', type: 'number', min: 1 },
       { prop: 'lora_alpha', label: 'LoRA Alpha', type: 'number', min: 1 },
       { prop: 'lora_dropout', label: 'LoRA Dropout', type: 'text' },
-      { prop: 'lora_target_modules', label: 'Target Modules', type: 'text', placeholder: 'ALL or q_proj,v_proj' },
+      { prop: 'lora_target_modules', label: 'Target Modules', type: 'text', placeholder: 'all-linear or q_proj,v_proj' },
     ]
   }
 ]

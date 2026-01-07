@@ -159,8 +159,8 @@
                 </el-form-item>
                 
                 <el-form-item label="Target Modules">
-                  <el-input v-model="form.target_modules" placeholder="ALL" />
-                  <div class="form-tip">默认为 ALL，也可指定如 q_proj,v_proj</div>
+                  <el-input v-model="form.target_modules" placeholder="all-linear" />
+                  <div class="form-tip">默认为 all-linear，也可指定如 q_proj,v_proj</div>
                 </el-form-item>
 
                 <el-form-item label="使用 RSLoRA">
@@ -252,7 +252,7 @@ const form = ref({
   lora_rank: 8,
   lora_alpha: 32,
   lora_dropout: 0.05,
-  target_modules: 'ALL',
+  target_modules: 'all-linear',
   use_rslora: false,
   use_dora: false,
   
