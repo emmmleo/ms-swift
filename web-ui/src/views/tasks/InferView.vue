@@ -115,9 +115,9 @@
                 <el-form-item label="精度 (Dtype)">
                   <el-select v-model="form.torch_dtype">
                     <el-option label="Auto" value="" />
-                    <el-option label="bf16" value="bf16" />
-                    <el-option label="fp16" value="fp16" />
-                    <el-option label="fp32" value="fp32" />
+                    <el-option label="bf16" value="bfloat16" />
+                    <el-option label="fp16" value="float16" />
+                    <el-option label="fp32" value="float32" />
                   </el-select>
                 </el-form-item>
 

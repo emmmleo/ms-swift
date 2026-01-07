@@ -284,7 +284,7 @@ const form = ref({
   max_length: 2048,
   beta: 0.1,
   seed: 42,
-  torch_dtype: 'bf16',
+  torch_dtype: 'bfloat16',
   gradient_checkpointing: true,
   
   // GRPO Training specific
