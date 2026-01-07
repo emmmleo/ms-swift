@@ -227,7 +227,10 @@ const handleLaunch = async () => {
     
     fields.forEach(f => {
       if (form.value[f] !== '' && form.value[f] !== null && form.value[f] !== undefined) {
-        const argName = f === 'model_id' ? 'model' : f
+        let argName = f
+        if (f === 'model_id') argName = 'model'
+        else if (f === 'gpu_memory_utilization') argName = 'vllm_gpu_memory_utilization'
+        
         command.push(`--${argName}`, String(form.value[f]))
       }
     })
