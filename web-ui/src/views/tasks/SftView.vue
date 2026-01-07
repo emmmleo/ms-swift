@@ -234,7 +234,7 @@ const form = ref({
   // Basic
   model_id: 'qwen/Qwen-7B-Chat',
   output_dir: 'output/sft_' + Date.now(),
-  dataset: ['alpaca-zh'],
+  dataset: ['AI-ModelScope/alpaca-gpt4-data-zh'],
   sft_type: 'lora', // This maps to --train_type
   train_type: 'sft', // This determines the command (swift sft)
   
