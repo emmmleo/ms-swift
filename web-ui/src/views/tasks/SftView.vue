@@ -291,7 +291,8 @@ const handleLaunch = async () => {
     
     fields.forEach(f => {
       if (form.value[f] !== '' && form.value[f] !== null) {
-        command.push(`--${f}`, String(form.value[f]))
+        const argName = f === 'model_id' ? 'model' : f
+        command.push(`--${argName}`, String(form.value[f]))
       }
     })
 
