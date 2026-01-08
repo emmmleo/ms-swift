@@ -1,86 +1,110 @@
-# ✨ AI魔法工坊 WebUI 使用指南
+# 🌌 SkyForge Web UI 使用指南
 
-这是一个基于 Swift 框架深度定制的 WebUI，旨在提供“模型训练云服务”体验。它采用了全新的卡通风格 UI 设计，并支持**前后端分离架构**，允许将 Web 界面部署在公网服务器，而将繁重的训练任务调度到内网 GPU 服务器执行。
+SkyForge 是下一代模型训练与推理 Web 平台。它采用现代化容器架构，支持一键 Docker 部署，为您提供开箱即用的 LLM/RLHF 训练环境。
 
 ## 🌟 核心特性
 
-*   **云服务架构**：Web 前端与 GPU 训练后端解耦，通过 HTTP API 通信。
-*   **全新 UI 设计**：采用侧边栏导航和清爽的卡通风格，移除复杂的框架术语，更适合终端用户。
-*   **远程任务管理**：直接在 Web 界面查看远程 GPU 服务器上的任务列表、实时日志，并可一键终止进程。
-*   **低资源前端**：Web 服务端仅需 CPU 即可运行，节省昂贵的 GPU 实例用于计算。
+*   **⚡️ 极速部署**：基于 Docker 容器化封装，无需繁琐的环境配置，一键启动。
+*   **🐳 完美隔离**：前端 Web 服务与后端 GPU 训练服务完全解耦，互不干扰。
+*   **🎨 现代化交互**：全新的 SkyForge UI 设计，操作直观，专注于模型训练工作流。
+*   **🚀 强大的后端**：支持全量参数微调、LoRA、RLHF 等多种训练模式。
 
 ---
 
-## 🚀 部署指南
+## �️ 环境准备
 
-本系统分为 **GPU 训练后端** 和 **Web 前端** 两部分。
+在开始之前，请确保您的服务器满足以下要求：
 
-### 1. 部署 GPU 训练后端 (Backend)
+1.  **操作系统**: Linux (推荐 Ubuntu 20.04/22.04) 或 Windows WSL2。
+2.  **Docker**: 已安装 Docker Engine 和 Docker Compose。
+3.  **NVIDIA GPU**: 建议显存 >= 24GB (取决于训练的模型大小)。
+4.  **NVIDIA Container Toolkit**: **必须安装**，用于让 Docker 容器调用 GPU 资源。
+    *   [安装文档参考](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
 
-在拥有 GPU 显卡的服务器上运行，负责实际的模型训练。
+---
 
-**前置要求**：
-*   Python 环境
-*   已安装 Swift 框架及相关依赖
-*   安装 Agent 依赖：`pip install fastapi uvicorn psutil`
+## 🚀 快速启动
 
-**启动命令**：
-```bash
-# 在 ms-swift 项目根目录下运行
-python swift/ui/agent.py
-```
-> 💡 **提示**：建议使用 `nohup` 或 `screen` 让服务在后台常驻运行。服务默认监听 `0.0.0.0:8000`。
+只需简单几步即可启动 SkyForge：
 
-### 2. 部署 Web 前端 (Frontend)
+### 1. 进入项目目录
 
-在面向用户的 Web 服务器（如阿里云 ECS、轻量应用服务器）上运行。
-
-**前置要求**：
-*   Python 环境
-*   安装 Swift 框架（主要用于 UI 渲染）
-*   安装请求库：`pip install requests`
-
-**启动命令**：
-你需要通过环境变量 `SWIFT_REMOTE_WORKER` 指定 GPU 后端的地址。
+确保您已下载本项目代码：
 
 ```bash
-# 替换 <GPU_SERVER_IP> 为后端服务器的公网 IP 或内网 IP
-export SWIFT_REMOTE_WORKER="http://<GPU_SERVER_IP>:8000"
-
-# 启动 WebUI
-python swift/ui/app.py
+cd skyforge
 ```
 
-访问终端输出的 URL（通常是 `http://127.0.0.1:7860` 或公网 IP:7860）即可开始使用。
+### 2. 启动服务
+
+使用 Docker Compose 一键拉起所有服务：
+
+```bash
+docker-compose up -d
+```
+
+此命令将自动：
+*   构建或拉取后端镜像 (`swift-backend`)
+*   构建前端镜像 (`swift-frontend`)
+*   启动服务并建立网络连接
+
+### 3. 访问 Web UI
+
+服务启动后，请在浏览器中访问：
+
+**http://localhost:8080**
+
+> ⚠️ **注意**：如果部署在远程服务器上，请将 `localhost` 替换为服务器的 IP 地址。确保您的防火墙已开放 **8080** (前端) 和 **8000** (后端 API) 端口。
 
 ---
 
-## 📖 使用说明
+## 📖 服务架构说明
 
-1.  **启动训练**：
-    *   在左侧菜单选择“LLM 训练”或“RLHF 训练”。
-    *   配置模型参数、数据集和训练参数。
-    *   点击底部的“开始训练”按钮。
-    *   WebUI 会自动将命令发送给远程 GPU 服务器。
+SkyForge 包含两个核心服务容器：
 
-2.  **查看日志**：
-    *   点击“运行时” (Runtime) 菜单。
-    *   在“运行中任务”下拉框中选择刚才启动的任务。
-    *   点击“展示运行状态”，即可实时看到远程服务器传回的训练日志和 TensorBoard 图表。
+| 服务名称 | 容器名 | 端口映射 | 说明 |
+| :--- | :--- | :--- | :--- |
+| **Backend** | `swift-backend` | `8000:8000` | 负责 GPU 调度、模型训练、推理 API。需独占 GPU 资源。 |
+| **Frontend** | `swift-frontend` | `8080:80` | 基于 Vue.js 的 Web 界面，轻量级运行，通过 API 与后端通信。 |
 
-3.  **管理任务**：
-    *   在“运行时”页面，点击“找回运行时任务”可刷新远程任务列表。
-    *   选中任务后，点击“杀死任务”可远程终止该训练进程。
+### 常用操作
+
+**查看日志**：
+
+```bash
+# 查看后端日志 (训练进度、报错信息)
+docker logs -f swift-backend
+
+# 查看前端日志 (Nginx 访问日志)
+docker logs -f swift-frontend
+```
+
+**停止服务**：
+
+```bash
+docker-compose down
+```
+
+**重建镜像** (代码修改后)：
+
+```bash
+docker-compose up -d --build
+```
 
 ---
 
-## 🛠️ 常见问题
+## ❓ 常见问题
 
-**Q: 前端显示“Failed to connect to remote worker”怎么办？**
-A: 请检查：
-1.  GPU 后端的 `agent.py` 是否正在运行。
-2.  GPU 服务器的防火墙/安全组是否开放了 `8000` 端口。
-3.  前端服务器是否能 ping 通 GPU 服务器 IP。
+**Q: 启动后页面提示 "Network Error" 或无法连接后端？**
+A: 前端默认尝试连接 `http://localhost:8000`。
+*   **本地部署**：请检查 `swift-backend` 容器是否运行正常 (`docker ps`)，以及 8000 端口是否被占用。
+*   **远程部署**：Web 浏览器运行在您的本地电脑上，它会尝试连接 `localhost:8000`，这会导致连接失败。您需要做以下任一操作：
+    1.  (推荐) 使用 SSH 隧道将服务器的 8000 端口映射到本地：`ssh -L 8000:localhost:8000 user@server_ip`
+    2.  或者修改前端代码中的 API 地址配置，并重新构建镜像。
 
-**Q: 本地开发如何测试？**
-A: 如果不设置 `SWIFT_REMOTE_WORKER` 环境变量，WebUI 将默认在本地模式下运行，即训练任务和 Web 服务在同一台机器上执行。
+**Q: 训练任务显示显存不足 (OOM)？**
+A: 请检查 `docker-compose.yml` 中的 GPU 配置。默认配置尝试使用所有可见 GPU。
+如果您与其他服务共享 GPU，请修改 `deploy.resources.reservations.devices` 部分来指定特定 GPU ID。
+
+**Q: 如何挂载自定义数据集？**
+A: `docker-compose.yml` 默认将当前目录挂载到容器内的 `/app`。您可以将数据集放在项目目录下，然后在 Web UI 中使用相对路径或绝对路径 `/app/...` 引用。
