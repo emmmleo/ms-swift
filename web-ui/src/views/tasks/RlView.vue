@@ -361,13 +361,13 @@ const handleLaunch = async () => {
 
     // LoRA params
     if (form.value.use_lora) {
-        command.push('--sft_type', 'lora')
+        command.push('--train_type', 'lora')
         command.push('--lora_rank', String(form.value.lora_rank))
         command.push('--lora_alpha', String(form.value.lora_alpha))
         command.push('--lora_dropout', String(form.value.lora_dropout))
         command.push('--target_modules', form.value.target_modules)
     } else {
-        command.push('--sft_type', 'full')
+        command.push('--train_type', 'full')
     }
 
     // Extra params
