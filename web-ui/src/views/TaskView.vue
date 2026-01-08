@@ -151,7 +151,7 @@ const form = ref({
   more_params: '',
   
   // SFT/PT
-  sft_type: 'lora',
+  train_type: 'lora',
   learning_rate: '1e-4',
   num_train_epochs: 1,
   batch_size: 1,
@@ -201,7 +201,7 @@ const sftSchema = [
     fields: [
       ...commonFields,
       { prop: 'dataset', label: 'Dataset', type: 'text', placeholder: 'e.g. alpaca-zh, msm8k' },
-      { prop: 'sft_type', label: 'SFT Type', type: 'select', options: [{label: 'LoRA', value: 'lora'}, {label: 'Full', value: 'full'}, {label: 'AdaLoRA', value: 'adalora'}] },
+      { prop: 'train_type', label: 'Training Type', type: 'select', options: [{label: 'LoRA', value: 'lora'}, {label: 'Full', value: 'full'}, {label: 'AdaLoRA', value: 'adalora'}] },
     ]
   },
   {

@@ -145,6 +145,10 @@
                       <el-input-number v-model="form.num_generations" :min="1" />
                       <div class="form-tip">每个提示生成的回复数量</div>
                     </el-form-item>
+                    <el-form-item label="生成Batch Size" v-if="form.rlhf_type === 'grpo'">
+                      <el-input-number v-model="form.generation_batch_size" :min="1" />
+                      <div class="form-tip">生成时的Batch Size，建议为 Num Gens 的倍数</div>
+                    </el-form-item>
                   </el-col>
                 </el-row>
 
@@ -289,6 +293,7 @@ const form = ref({
   
   // GRPO Training specific
   num_generations: 4,
+  generation_batch_size: 4,
   max_completion_length: 1024,
   use_vllm: false,
 
@@ -341,6 +346,9 @@ const handleLaunch = async () => {
         command.push('--reward_funcs', ...form.value.reward_funcs)
       }
       command.push('--num_generations', String(form.value.num_generations))
+      if (form.value.generation_batch_size) {
+        command.push('--generation_batch_size', String(form.value.generation_batch_size))
+      }
       command.push('--max_completion_length', String(form.value.max_completion_length))
       if (form.value.use_vllm) command.push('--use_vllm', 'true')
     } else {
