@@ -202,7 +202,7 @@
                   </el-form-item>
                   
                   <el-form-item label="Target Modules">
-                    <el-input v-model="form.target_modules" placeholder="ALL" />
+                    <el-input v-model="form.target_modules" placeholder="all-linear" />
                   </el-form-item>
                 </template>
               </el-form>

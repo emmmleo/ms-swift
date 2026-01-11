@@ -162,7 +162,7 @@ const form = ref({
   lora_rank: 8,
   lora_alpha: 32,
   lora_dropout: 0.05,
-  lora_target_modules: 'ALL',
+  target_modules: 'all-linear',
   
   // RLHF
   rlhf_type: 'dpo',
@@ -220,7 +220,7 @@ const sftSchema = [
       { prop: 'lora_rank', label: 'LoRA Rank', type: 'number', min: 1 },
       { prop: 'lora_alpha', label: 'LoRA Alpha', type: 'number', min: 1 },
       { prop: 'lora_dropout', label: 'LoRA Dropout', type: 'text' },
-      { prop: 'lora_target_modules', label: 'Target Modules', type: 'text', placeholder: 'all-linear or q_proj,v_proj' },
+      { prop: 'target_modules', label: 'Target Modules', type: 'text', placeholder: 'all-linear or q_proj,v_proj' },
     ]
   }
 ]

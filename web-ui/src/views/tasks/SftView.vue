@@ -67,7 +67,7 @@
                 </el-form-item>
                 
                 <el-form-item label="微调类型">
-                  <el-radio-group v-model="form.sft_type">
+                  <el-radio-group v-model="form.tuner_type">
                     <el-radio-button label="lora">LoRA</el-radio-button>
                     <el-radio-button label="full">Full (全量)</el-radio-button>
                     <el-radio-button label="adalora">AdaLoRA</el-radio-button>
@@ -75,7 +75,7 @@
                 </el-form-item>
 
                 <el-form-item label="训练方式">
-                  <el-radio-group v-model="form.train_type">
+                  <el-radio-group v-model="form.task_type">
                     <el-radio-button label="sft">SFT (监督微调)</el-radio-button>
                     <el-radio-button label="pt">PT (预训练)</el-radio-button>
                   </el-radio-group>
@@ -235,8 +235,8 @@ const form = ref({
   model_id: 'qwen/Qwen-7B-Chat',
   output_dir: 'output/sft_' + Date.now(),
   dataset: ['AI-ModelScope/alpaca-gpt4-data-zh'],
-  sft_type: 'lora', // This maps to --train_type
-  train_type: 'sft', // This determines the command (swift sft)
+  tuner_type: 'lora', // This maps to --train_type
+  task_type: 'sft', // This determines the command (swift sft)
   
   // Training
   learning_rate: '1e-4',
@@ -274,10 +274,10 @@ onMounted(async () => {
 const handleLaunch = async () => {
   launching.value = true
   try {
-    const command = ['swift', form.value.train_type] // sft or pt
+    const command = ['swift', form.value.task_type] // sft or pt
     
-    // Manual mapping for sft_type -> --train_type (lora/full)
-    command.push('--train_type', form.value.sft_type)
+    // Manual mapping for tuner_type -> --train_type (lora/full)
+    command.push('--train_type', form.value.tuner_type)
 
     // Parameter mapping
     const fields = [

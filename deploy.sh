@@ -1,12 +1,12 @@
 #!/bin/bash
 
-# Swift Web UI Deployment Script
+# SkyForge Web UI Deployment Script
 
 # Colors for output
 GREEN='\033[0;32m'
 NC='\033[0m' # No Color
 
-echo -e "${GREEN}Starting Swift Web UI Deployment...${NC}"
+echo -e "${GREEN}Starting SkyForge Web UI Deployment...${NC}"
 
 # Check if Docker is installed
 if ! command -v docker &> /dev/null; then

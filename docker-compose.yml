@@ -6,7 +6,7 @@ services:
     build:
       context: .
       dockerfile: docker/backend/Dockerfile
-    container_name: swift-backend
+    container_name: skyforge-backend
     ports:
       - "8000:8000"
     volumes:
@@ -30,7 +30,7 @@ services:
     build:
       context: ./web-ui
       dockerfile: Dockerfile
-    container_name: swift-frontend
+    container_name: skyforge-frontend
     ports:
       - "8080:80"
     depends_on:
