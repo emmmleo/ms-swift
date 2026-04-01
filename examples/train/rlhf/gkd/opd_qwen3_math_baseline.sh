@@ -74,6 +74,8 @@ DATASET_NUM_PROC="${DATASET_NUM_PROC:-8}"
 # In-training evaluation:
 # - Supported by ms-swift via EvalScope hooks.
 # - Default to a light math checkpoint-selection setting on AIME-2025.
+# - Do not pass `--eval_backend` here: `swift rlhf` only accepts the train-eval loop args
+#   (`eval_use_evalscope`, `eval_dataset`, `eval_generation_config`, `extra_eval_args`, ...).
 # - Use the standalone eval script for final full-benchmark numbers.
 EVAL_DURING_TRAIN="${EVAL_DURING_TRAIN:-true}"
 EVAL_STRATEGY="${EVAL_STRATEGY:-steps}"
@@ -174,7 +176,6 @@ if [[ "${EVAL_DURING_TRAIN}" == "true" ]]; then
         --eval_steps "${EVAL_STEPS}"
         --per_device_eval_batch_size "${PER_DEVICE_EVAL_BATCH_SIZE}"
         --eval_use_evalscope
-        --eval_backend Native
         --eval_dataset "${EVAL_DATASET_ARR[@]}"
         --eval_generation_config "${EVAL_GENERATION_CONFIG}"
     )
