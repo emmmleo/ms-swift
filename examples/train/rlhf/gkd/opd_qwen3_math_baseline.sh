@@ -38,7 +38,11 @@ CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 
 STUDENT_MODEL="${STUDENT_MODEL:-Qwen/Qwen3-1.7B-Base}"
 TEACHER_MODEL="${TEACHER_MODEL:-Qwen/Qwen3-8B}"
-TRAIN_DATASET="${TRAIN_DATASET:-AI-ModelScope/math-trn-format}"
+# Use Hugging Face for the Qwen3 checkpoints by default. The training set is still
+# ModelScope-only in this recipe, so keep the explicit `ms::` prefix when `--use_hf`
+# is enabled.
+USE_HF="${USE_HF:-true}"
+TRAIN_DATASET="${TRAIN_DATASET:-ms::AI-ModelScope/math-trn-format}"
 OUTPUT_DIR="${OUTPUT_DIR:-output/opd_baseline/qwen3_1_7b_math}"
 
 PER_DEVICE_TRAIN_BATCH_SIZE="${PER_DEVICE_TRAIN_BATCH_SIZE:-}"
@@ -64,7 +68,11 @@ VLLM_TENSOR_PARALLEL_SIZE="${VLLM_TENSOR_PARALLEL_SIZE:-1}"
 VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-10240}"
 SLEEP_LEVEL="${SLEEP_LEVEL:-1}"
 
-ATTN_IMPL="${ATTN_IMPL:-flash_attn}"
+# Pure-text Qwen3 can run with sdpa or flash-attn.
+# Default to sdpa for better environment portability.
+# If your flash-attn wheel is compiled against the exact torch/cuda stack in use,
+# override with `ATTN_IMPL=flash_attn`.
+ATTN_IMPL="${ATTN_IMPL:-sdpa}"
 LOGGING_STEPS="${LOGGING_STEPS:-1}"
 SAVE_STEPS="${SAVE_STEPS:-100}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-3}"
@@ -123,6 +131,7 @@ TRAIN_CMD=(
     --model "${STUDENT_MODEL}"
     --teacher_model "${TEACHER_MODEL}"
     --tuner_type full
+    --use_hf "${USE_HF}"
     --dataset "${TRAIN_DATASET}"
     --load_from_cache_file true
     --split_dataset_ratio 0
