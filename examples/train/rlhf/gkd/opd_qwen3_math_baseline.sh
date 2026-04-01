@@ -36,13 +36,13 @@ set -euo pipefail
 NPROC_PER_NODE="${NPROC_PER_NODE:-8}"
 CUDA_VISIBLE_DEVICES="${CUDA_VISIBLE_DEVICES:-0,1,2,3,4,5,6,7}"
 
-STUDENT_MODEL="${STUDENT_MODEL:-Qwen/Qwen3-1.7B-Base}"
-TEACHER_MODEL="${TEACHER_MODEL:-Qwen/Qwen3-8B}"
+STUDENT_MODEL="${STUDENT_MODEL:-/scratch/azureml/yz/model_cache/Qwen3-1.7B-Base}"
+TEACHER_MODEL="${TEACHER_MODEL:-/scratch/azureml/yz/model_cache/Qwen3-8B}"
 # Use Hugging Face for the Qwen3 checkpoints by default. The training set is still
 # ModelScope-only in this recipe, so keep the explicit `ms::` prefix when `--use_hf`
 # is enabled.
 USE_HF="${USE_HF:-true}"
-TRAIN_DATASET="${TRAIN_DATASET:-ms::AI-ModelScope/math-trn-format}"
+TRAIN_DATASET="${TRAIN_DATASET:-/scratch/azureml/yz/model_cache/math-trn-format/math_format.jsonl}"
 OUTPUT_DIR="${OUTPUT_DIR:-output/opd_baseline/qwen3_1_7b_math}"
 
 PER_DEVICE_TRAIN_BATCH_SIZE="${PER_DEVICE_TRAIN_BATCH_SIZE:-}"
@@ -63,18 +63,14 @@ OFFLOAD_TEACHER_MODEL="${OFFLOAD_TEACHER_MODEL:-false}"
 
 USE_VLLM="${USE_VLLM:-true}"
 VLLM_MODE="${VLLM_MODE:-colocate}"
-VLLM_GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.30}"
+VLLM_GPU_MEMORY_UTILIZATION="${VLLM_GPU_MEMORY_UTILIZATION:-0.35}"
 VLLM_TENSOR_PARALLEL_SIZE="${VLLM_TENSOR_PARALLEL_SIZE:-1}"
 VLLM_MAX_MODEL_LEN="${VLLM_MAX_MODEL_LEN:-10240}"
-SLEEP_LEVEL="${SLEEP_LEVEL:-1}"
+SLEEP_LEVEL="${SLEEP_LEVEL:-0}"
 
-# Pure-text Qwen3 can run with sdpa or flash-attn.
-# Default to sdpa for better environment portability.
-# If your flash-attn wheel is compiled against the exact torch/cuda stack in use,
-# override with `ATTN_IMPL=flash_attn`.
-ATTN_IMPL="${ATTN_IMPL:-sdpa}"
+ATTN_IMPL="${ATTN_IMPL:-flash_attn}"
 LOGGING_STEPS="${LOGGING_STEPS:-1}"
-SAVE_STEPS="${SAVE_STEPS:-100}"
+SAVE_STEPS="${SAVE_STEPS:-90}"
 SAVE_TOTAL_LIMIT="${SAVE_TOTAL_LIMIT:-3}"
 DATALOADER_NUM_WORKERS="${DATALOADER_NUM_WORKERS:-8}"
 DATASET_NUM_PROC="${DATASET_NUM_PROC:-8}"
@@ -87,11 +83,11 @@ DATASET_NUM_PROC="${DATASET_NUM_PROC:-8}"
 # - Use the standalone eval script for final full-benchmark numbers.
 EVAL_DURING_TRAIN="${EVAL_DURING_TRAIN:-true}"
 EVAL_STRATEGY="${EVAL_STRATEGY:-steps}"
-EVAL_STEPS="${EVAL_STEPS:-100}"
-PER_DEVICE_EVAL_BATCH_SIZE="${PER_DEVICE_EVAL_BATCH_SIZE:-1}"
+EVAL_STEPS="${EVAL_STEPS:-90}"
+PER_DEVICE_EVAL_BATCH_SIZE="${PER_DEVICE_EVAL_BATCH_SIZE:-4}"
 EVAL_DATASETS="${EVAL_DATASETS:-aime25}"
 EVAL_LIMIT="${EVAL_LIMIT:-}"
-EVAL_GENERATION_CONFIG="${EVAL_GENERATION_CONFIG:-{\"max_tokens\":8192,\"temperature\":0.0,\"do_sample\":false}}"
+EVAL_GENERATION_CONFIG="${EVAL_GENERATION_CONFIG:-{\"max_tokens\":8192,\"temperature\":1.0,\"top_p\":0.8,\"do_sample\":true,\"n\":8}}"
 
 if [[ -z "${PER_DEVICE_TRAIN_BATCH_SIZE}" ]]; then
     if (( 32 % NPROC_PER_NODE == 0 )); then
@@ -175,7 +171,7 @@ TRAIN_CMD=(
     --sleep_level "${SLEEP_LEVEL}"
     --attn_impl "${ATTN_IMPL}"
     --log_completions true
-    --report_to tensorboard
+    --report_to tensorboard swanlab
     --output_dir "${OUTPUT_DIR}"
 )
 
